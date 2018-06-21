@@ -505,7 +505,7 @@ class MinionBase(object):
                                 preferred_masters[0] = opts['master'][master_idx]
                                 preferred_masters[1:] = [m for m in opts['master'] if m != preferred_masters[0]]
                                 opts['master'] = preferred_masters
-                                log.info('Distributed to the master at \'{0}\'.'.format(opts['master'][0]))
+                                log.info('Distributed to the master at \'%s\'.', opts['master'][0])
                             except (KeyError, AttributeError, TypeError):
                                 log.warning('Failed to distribute to a specific master.')
                         else:
@@ -722,21 +722,21 @@ class MinionBase(object):
             for att in range(self.opts['discovery'].get('attempts', 3)):
                 try:
                     att += 1
-                    log.info('Attempting {0} time{1} to discover masters'.format(att, (att > 1 and 's' or '')))
+                    log.info('Attempting %s time %s to discover masters', att, (att > 1 and 's' or ''))
                     masters.update(master_discovery_client.discover())
                     if not masters:
                         time.sleep(self.opts['discovery'].get('pause', 5))
                     else:
                         break
                 except Exception as err:
-                    log.error('SSDP discovery failure: {0}'.format(err))
+                    log.error('SSDP discovery failure: %s', err)
                     break
 
             if masters:
                 policy = self.opts.get('discovery', {}).get('match', 'any')
                 if policy not in ['any', 'all']:
-                    log.error('SSDP configuration matcher failure: unknown value "{0}". '
-                              'Should be "any" or "all"'.format(policy))
+                    log.error('SSDP configuration matcher failure: unknown value "%s". '
+                              'Should be "any" or "all"', policy)
                 else:
                     mapping = self.opts['discovery'].get('mapping', {})
                     for addr, mappings in masters.items():
@@ -768,10 +768,10 @@ class MinionBase(object):
                     self.opts['return_retry_timer'],
                     self.opts['return_retry_timer_max'],
                 )
-                log.debug(msg.format(DEFAULT_MINION_OPTS['return_retry_timer']))
+                log.debug(msg.format(DEFAULT_MINION_OPTS['return_retry_timer']))  # pylint: disable=str-format-in-logging
                 return DEFAULT_MINION_OPTS['return_retry_timer']
         else:
-            log.debug(msg.format(self.opts.get('return_retry_timer')))
+            log.debug(msg.format(self.opts.get('return_retry_timer')))  # pylint: disable=str-format-in-logging
             return self.opts.get('return_retry_timer')
         # future lint: enable=str-format-in-logging
 
@@ -1460,7 +1460,7 @@ class Minion(MinionBase):
         if process_count_max > 0:
             process_count = len(salt.utils.minion.running(self.opts))
             while process_count >= process_count_max:
-                log.warn("Maximum number of processes reached while executing jid {0}, waiting...".format(data['jid']))
+                log.warn("Maximum number of processes reached while executing jid %s, waiting...", data['jid'])
                 yield tornado.gen.sleep(10)
                 process_count = len(salt.utils.minion.running(self.opts))
 
@@ -1564,7 +1564,7 @@ class Minion(MinionBase):
 
         salt.utils.process.appendproctitle('{0}._thread_return {1}'.format(cls.__name__, data['jid']))
 
-        perf = opts.get('performance',None)
+        perf = opts.get('performance', None)
         if perf is not None:
             jid = data['jid']
             minion_id = opts['id']
@@ -2596,22 +2596,19 @@ class Minion(MinionBase):
                 if self.opts['grains_refresh_every']:  # If exists and is not zero. In minutes, not seconds!
                     if self.opts['grains_refresh_every'] > 1:
                         log.debug(
-                            'Enabling the grains refresher. Will run every {0} minutes.'.format(
+                            'Enabling the grains refresher. Will run every %s minutes.',
                                 self.opts['grains_refresh_every'])
-                        )
                     else:  # Clean up minute vs. minutes in log message
                         log.debug(
-                            'Enabling the grains refresher. Will run every {0} minute.'.format(
+                            'Enabling the grains refresher. Will run every %s minute.',
                                 self.opts['grains_refresh_every'])
-                        )
                     self._refresh_grains_watcher(
                         abs(self.opts['grains_refresh_every'])
                     )
             except Exception as exc:
                 log.error(
-                    'Exception occurred in attempt to initialize grain refresh routine during minion tune-in: {0}'.format(
-                        exc)
-                )
+                    'Exception occurred in attempt to initialize grain refresh routine during minion tune-in: %s',
+                    exc)
 
             # TODO: actually listen to the return and change period
             def handle_schedule():
@@ -2732,9 +2729,9 @@ class Minion(MinionBase):
                 return False
             if load['tgt_type'] in ('grain', 'grain_pcre', 'pillar'):
                 delimiter = load.get('delimiter', DEFAULT_TARGET_DELIM)
-                if not match_func(load['tgt'], delimiter=delimiter):
+                if not match_func(load['tgt'], delimiter=delimiter):  # pylint: disable=not-callable
                     return False
-            elif not match_func(load['tgt']):
+            elif not match_func(load['tgt']):  # pylint: disable=not-callable
                 return False
         else:
             if not self.matcher.glob_match(load['tgt']):
@@ -3117,7 +3114,7 @@ class SyndicManager(MinionBase):
 
         while True:
             yield master_id, self._syndics[master_id]
-            if len(masters) == 0:
+            if not masters:
                 break
             master_id = masters.pop(0)
 
@@ -3607,8 +3604,8 @@ class ProxyMinion(Minion):
                 try:
                     self.opts['mine_functions'] = general_proxy_mines + specific_proxy_mines
                 except TypeError as terr:
-                    log.error('Unable to merge mine functions from the pillar in the opts, for proxy {}'.format(
-                        self.opts['id']))
+                    log.error('Unable to merge mine functions from the pillar in the opts, for proxy %s',
+                        self.opts['id'])
 
         fq_proxyname = self.opts['proxy']['proxytype']
 

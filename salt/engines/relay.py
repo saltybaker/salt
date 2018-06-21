@@ -20,6 +20,11 @@ from salt.performance.time_provider import TimestampProvider
 
 log = logging.getLogger(__name__)
 
+DEFAULT_HOST = "localhost"
+DEFAULT_PORT = 9900
+CONFIG_ZMQ_HOST = 'zmq_host'
+CONFIG_ZMQ_PORT = 'zmq_port'
+
 
 class JsonRenderer(object):
     def marshal(self, smth):
@@ -29,9 +34,8 @@ class JsonRenderer(object):
 # FIXME [KN] refactor to use salt.transport.zmq instead
 class ZmqSender(object):
     def __init__(self, json_renderer, zmq_host='localhost', zmq_port=9900):
-        super().__init__()
         self.json_renderer = json_renderer
-        log.debug("ZMQ version: {}".format(zmq.zmq_version()))
+        log.debug("ZMQ version: %s", zmq.zmq_version())
 
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PUB)
@@ -40,27 +44,46 @@ class ZmqSender(object):
 
         self.socket.set_hwm(10240)
 
-        zmq_address = "tcp://%s:%d" % (zmq_host, zmq_port)
-        log.info("Connecting to ZMQ at address: %s" % zmq_address)
+        zmq_address = "tcp://{}:{}".format(zmq_host, zmq_port)
+        log.info("Connecting to ZMQ at address: %s", zmq_address)
 
         self.socket.connect(zmq_address)
         time.sleep(2)
 
     def send(self, payload):
         out_str = self.json_renderer.marshal(payload)
-        log.debug("Sent message: {}".format(out_str))
-        self.socket.send_unicode("{} {}".format("topic", out_str))
+        log.debug("Sent message: %s", out_str)
+        self.socket.send_unicode("%s %s", "topic", out_str)
 
     def close(self):
         self.socket.close()
         self.context.destroy(linger=3000)
 
 
-def start(host='127.0.0.1',
-          port=9900):
+def start(host=DEFAULT_HOST,
+          port=DEFAULT_PORT):
     '''
     Listen to events and resend the message queue throughput statistics to the Aggregator.
     '''
+
+    perf = __opts__.get('performance', None)
+    if not isinstance(perf, dict):
+        log.warning('No configuration for performance module - inactive')
+        return
+
+    agg = perf.get('aggregator')
+
+    if (not isinstance(agg, dict) or
+        agg.get(CONFIG_ZMQ_HOST) is None or
+        agg.get(CONFIG_ZMQ_PORT) is None):
+        logmsg = ('No configuration for performance aggregator ' +
+                  '- using defaults  host: {} ' +
+                  'port: {}').format(DEFAULT_HOST, DEFAULT_PORT)
+        log.warning(logmsg)
+        agg = {CONFIG_ZMQ_HOST: DEFAULT_HOST, CONFIG_ZMQ_PORT: DEFAULT_PORT}
+
+    zmq_host = agg.get(CONFIG_ZMQ_HOST, host)
+    zmq_port = agg.get(CONFIG_ZMQ_PORT, port)
 
     if __opts__['__role'] == 'master':
         event_bus = salt.utils.event.get_master_event(
@@ -74,8 +97,8 @@ def start(host='127.0.0.1',
             opts=__opts__,
             sock_dir=__opts__['sock_dir'],
             listen=True)
-    log.debug("Using host=%s and port=%d for ZMQ" % (host, port))
-    sender = ZmqSender(JsonRenderer(), zmq_host=host, zmq_port=port)
+    log.debug("Using host=%s and port=%d for ZMQ", zmq_host, zmq_port)
+    sender = ZmqSender(JsonRenderer(), zmq_host=zmq_host, zmq_port=zmq_port)
     log.debug('ZMQ relay engine has started')
 
     try:

@@ -1314,3 +1314,10 @@
 # use OS defaults, typically 75 seconds on Linux, see
 # /proc/sys/net/ipv4/tcp_keepalive_intvl.
 #tcp_keepalive_intvl: -1
+
+# Performance module configuration
+#performance:
+#  aggregator:
+#    zmq_host: localhost
+#    zmq_port: 9900
+
