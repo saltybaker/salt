@@ -19,7 +19,8 @@ class JsonRenderer(object):
 class ZmqSender(object):
     def __init__(self, json_renderer, zmq_host='localhost', zmq_port=9900):
         self.json_renderer = json_renderer
-        log.debug("ZMQ version: %s", zmq.zmq_version())
+        log.debug("ZmqSender: ZMQ version: %s", zmq.zmq_version())
+        log.debug('ZmqSender: ZMQ host %s port $d', zmq_host, zmq_port)
 
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PUB)
@@ -29,14 +30,14 @@ class ZmqSender(object):
         self.socket.set_hwm(10240)
 
         zmq_address = "tcp://{}:{}".format(zmq_host, zmq_port)
-        log.info("Connecting to ZMQ at address: %s", zmq_address)
+        log.info("ZmqSender: Connecting to ZMQ at address: %s", zmq_address)
 
         self.socket.connect(zmq_address)
         time.sleep(2)
 
     def send(self, payload):
         out_str = self.json_renderer.marshal(payload)
-        log.debug("Sent message: %s", out_str)
+        log.debug("ZmqSender: Sent message: %s", out_str)
         self.socket.send_unicode("%s %s", "topic", out_str)
 
     def close(self):

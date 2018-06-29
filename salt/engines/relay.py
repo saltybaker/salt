@@ -53,7 +53,7 @@ class ZmqSender(object):
     def send(self, payload):
         out_str = self.json_renderer.marshal(payload)
         log.debug("Sent message: %s", out_str)
-        self.socket.send_unicode("%s %s", "topic", out_str)
+        self.socket.send_unicode("{} {}".format("topic", out_str))
 
     def close(self):
         self.socket.close()
@@ -68,8 +68,10 @@ def start(host=DEFAULT_HOST,
 
     perf = __opts__.get('performance', None)
     if not isinstance(perf, dict):
-        log.warning('No configuration for performance module - inactive')
+        log.warning('engine::relay: No configuration for performance module - inactive')
         return
+    else:
+        log.debug('engine::relay: Performance module is NOT enabled')
 
     agg = perf.get('aggregator')
 
@@ -83,7 +85,7 @@ def start(host=DEFAULT_HOST,
         agg = {CONFIG_ZMQ_HOST: DEFAULT_HOST, CONFIG_ZMQ_PORT: DEFAULT_PORT}
 
     zmq_host = agg.get(CONFIG_ZMQ_HOST, host)
-    zmq_port = agg.get(CONFIG_ZMQ_PORT, port)
+    zmq_port = int(agg.get(CONFIG_ZMQ_PORT, port))
 
     if __opts__['__role'] == 'master':
         event_bus = salt.utils.event.get_master_event(
@@ -97,7 +99,7 @@ def start(host=DEFAULT_HOST,
             opts=__opts__,
             sock_dir=__opts__['sock_dir'],
             listen=True)
-    log.debug("Using host=%s and port=%d for ZMQ", zmq_host, zmq_port)
+    log.debug("engine::relay: - Performance using host=%s and port=%d for ZMQ", zmq_host, zmq_port)
     sender = ZmqSender(JsonRenderer(), zmq_host=zmq_host, zmq_port=zmq_port)
     log.debug('ZMQ relay engine has started')
 

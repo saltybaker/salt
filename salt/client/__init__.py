@@ -162,6 +162,11 @@ class LocalClient(object):
             self.opts = salt.config.client_config(c_path)
             self.perf = None
 
+        if self.perf is None:
+            log.debug('Client::__init__: Performance module NOT enabled')
+        else:
+            log.debug('Client::__init__: Performance module IS enabled')
+
         self.serial = salt.payload.Serial(self.opts)
         self.salt_user = salt.utils.user.get_specific_user()
         self.skip_perm_errors = skip_perm_errors

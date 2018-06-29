@@ -1082,6 +1082,12 @@ class Minion(MinionBase):
         self.periodic_callbacks = {}
         self.perf = self.opts.get("performance", None)
 
+        if self.perf is None:
+            log.debug('Minion::__init__: Performance module NOT enabled')
+        else:
+            log.debug('Minion::__init__: Performance module IS enabled')
+
+
         if io_loop is None:
             install_zmq()
             self.io_loop = ZMQDefaultLoop.current()
@@ -1566,11 +1572,14 @@ class Minion(MinionBase):
 
         perf = opts.get('performance', None)
         if perf is not None:
+            log.debug('minion::_thread_return: Performance module IS enabled')
             jid = data['jid']
             minion_id = opts['id']
             minion_instance._fire_master(
                 data=taken_by_minion(jid=jid, ts=TimestampProvider.get_now(), minion_id=minion_id),
                 tag='perf/minion')
+        else:
+            log.debug('minion::_thread_return: Performance module is NOT enabled')
 
         sdata = {'pid': os.getpid()}
         sdata.update(data)
@@ -1942,6 +1951,7 @@ class Minion(MinionBase):
             return True
 
         if self.perf is not None:
+            log.debug('Minion::_return_pub: Performance module IS enabled')
             # [KN] _thread_return() would be a better place for this call but unfortunately this is the first time we ever
             # see the payload to be returned. Probably, this function could be decoupled to have a single
             # responsibility.
@@ -1956,6 +1966,8 @@ class Minion(MinionBase):
             self._fire_master(
                 data=executed_by_minion(jid=jid, ts=TimestampProvider.get_now(), minion_id=minion_id, return_size=payload_len),
                 tag='perf/minion')
+        else:
+            log.debug('Minion::_return_pub: Performance module is NOT enabled')
 
         if sync:
             try:
@@ -2044,6 +2056,7 @@ class Minion(MinionBase):
             return True
 
         if self.perf is not None:
+            log.debug('Minion::_return_pub_multi: Performance module IS enabled')
             # [KN] _thread_return() would be a better place for this call but unfortunately this is the first time we ever
             # see the payload to be returned. Probably, this function could be decoupled to have a single
             # responsibility.
@@ -2058,6 +2071,9 @@ class Minion(MinionBase):
             self._fire_master(
                 data=executed_by_minion(jid=jid, ts=TimestampProvider.get_now(), minion_id=minion_id, return_size=payload_len),
                 tag='perf/minion')
+        else:
+            log.debug('Minion::_return_pub_multi: Performance module is NOT enabled')
+
 
         if sync:
             try:
