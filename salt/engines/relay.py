@@ -69,9 +69,10 @@ def start(host=DEFAULT_HOST,
     perf = __opts__.get('performance', None)
     if not isinstance(perf, dict):
         log.warning('engine::relay: No configuration for performance module - inactive')
+        log.debug('engine::relay: Performance module is NOT enabled')
         return
     else:
-        log.debug('engine::relay: Performance module is NOT enabled')
+        log.debug('engine::relay: Performance module IS enabled')
 
     agg = perf.get('aggregator')
 
@@ -115,7 +116,11 @@ def start(host=DEFAULT_HOST,
             sender.send(message_observed(msg_length=len(jevent), tag=event['tag'], ts=TimestampProvider.get_now()))
 
             if event['tag'].startswith('perf/'):
-                sender.send(event['data']['data'])
+                try:
+                    log.debug('about to send event to agg: %s', str(event))
+                    sender.send(event['data'])
+                except Exception as e:
+                    log.debug('broken event: %s exception: %s', event, e)
 
     finally:
         sender.close()

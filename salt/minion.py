@@ -1087,7 +1087,6 @@ class Minion(MinionBase):
         else:
             log.debug('Minion::__init__: Performance module IS enabled')
 
-
         if io_loop is None:
             install_zmq()
             self.io_loop = ZMQDefaultLoop.current()
@@ -1390,6 +1389,7 @@ class Minion(MinionBase):
         '''
         Fire an event on the master, or drop message if unable to send.
         '''
+
         load = {'id': self.opts['id'],
                 'cmd': '_minion_event',
                 'pretag': pretag,
@@ -2073,7 +2073,6 @@ class Minion(MinionBase):
                 tag='perf/minion')
         else:
             log.debug('Minion::_return_pub_multi: Performance module is NOT enabled')
-
 
         if sync:
             try:
